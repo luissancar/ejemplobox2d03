@@ -11,7 +11,11 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.BodyDef;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.World;
 
@@ -26,6 +30,7 @@ public class Box2DScreen extends BaseScreen {
     private OrthographicCamera camera; //cámara 2d;
     private Body objeto01Body, sueloBody, pinchoBody;  // entedad de nuestro mundo, posición, velocidad, no tiene forma
     private Fixture objeto01Fixture, sueloFixture, pinchoFixture; // forma del body
+    private boolean debeSaltar,objeto01Saltando;
 
 
 
@@ -44,15 +49,52 @@ public class Box2DScreen extends BaseScreen {
         renderer=new Box2DDebugRenderer();
         camera=new OrthographicCamera(7.11f,4);
         camera.translate(0,1); // mueve la cámara 1 metro hacia arriba
+
+
+
+        world.setContactListener(new ContactListener() {  //Creamos un listener para contactos
+            @Override
+            public void beginContact(Contact contact) {
+                Fixture fixtureA = contact.getFixtureA(), fixtureB = contact.getFixtureB();
+                if ((fixtureA==objeto01Fixture && fixtureB==sueloFixture) || (fixtureB==objeto01Fixture && fixtureA==sueloFixture)){
+                    if (Gdx.input.isTouched()){  // si sigue pulsado continua saltando
+                        debeSaltar=true;
+                    }
+                    objeto01Saltando=false; //no se puede llamar a saltar directamente
+                }
+
+
+
+
+            }
+
+            @Override
+            public void endContact(Contact contact) {
+                Fixture fixtureA = contact.getFixtureA(), fixtureB = contact.getFixtureB();
+                if ((fixtureA==objeto01Fixture && fixtureB==sueloFixture) || (fixtureB==objeto01Fixture && fixtureA==sueloFixture)){
+                    objeto01Saltando=true; //no se puede llamar a saltar directamente
+                }
+            }
+
+            @Override
+            public void preSolve(Contact contact, Manifold oldManifold) {
+
+            }
+
+            @Override
+            public void postSolve(Contact contact, ContactImpulse impulse) {
+
+            }
+        });
         BodyDef objeto01Def=createObjeto01Def();
         objeto01Body=world.createBody(objeto01Def);
         sueloBody=world.createBody(createSueloDef());
-        pinchoBody=world.createBody(createPinchoDef(0.5f));
+        pinchoBody=world.createBody(createPinchoDef(1));
         PolygonShape pinchoShape=new PolygonShape();
         pinchoFixture=pinchoBody.createFixture(pinchoShape,1);
         pinchoShape.dispose();
 
-        ;        PolygonShape objeto01Shape=new PolygonShape();
+        PolygonShape objeto01Shape=new PolygonShape();
         objeto01Shape.setAsBox(0.5f,0.5f); // en metros
         objeto01Fixture=objeto01Body.createFixture(objeto01Shape,1); //1= densidad
         objeto01Shape.dispose(); // no lo necesitamos
@@ -118,6 +160,13 @@ public class Box2DScreen extends BaseScreen {
     public void render(float delta) {
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
+        if (debeSaltar){  // para no hacer saltos en el aire
+            debeSaltar=false;
+            saltar();
+        }
+        if (Gdx.input.justTouched() && !objeto01Saltando){
+            debeSaltar=true;
+        }
     /*
     To update our simulation we need to tell our world to step. Stepping basically updates the world objects through time.
      The first argument is the time-step, or the amount of time you want your world to simulate. In most cases you want this to be a fixed time step. libgdx recommends using either 1/45f (which is 1/45th of a second) or 1/300f (1/300th of a second).
@@ -129,5 +178,8 @@ public class Box2DScreen extends BaseScreen {
         renderer.render(world,camera.combined);  // matriz de proyección
     }
 
-    private
+    private void saltar() {
+        Vector2 position=objeto01Body.getPosition();
+        objeto01Body.applyLinearImpulse(0,5,position.x,position.y,true); // fuerza aplicada, posición y que lo despierte
+    }
 }
