@@ -167,6 +167,7 @@ public class Box2DScreen extends BaseScreen {
         if (Gdx.input.justTouched() && !objeto01Saltando){
             debeSaltar=true;
         }
+
     /*
     To update our simulation we need to tell our world to step. Stepping basically updates the world objects through time.
      The first argument is the time-step, or the amount of time you want your world to simulate. In most cases you want this to be a fixed time step. libgdx recommends using either 1/45f (which is 1/45th of a second) or 1/300f (1/300th of a second).
